@@ -80,7 +80,7 @@ class Second {
         exitProcess(0)
     }
 
-    fun getLine() = First.parse(readLine()?.filter { it != '\t' && it != '\r' && it != ' ' })
+    fun getLine() = First.parse(readLine()?.filter { it != '\t' && it != '\r' && it != ' ' }, false)
 
 
     fun dfs(n: Int) {
@@ -100,14 +100,14 @@ class Second {
 
     fun start() {
         val firstLine = readLine()!!.filter { it != '\t' && it != '\r' && it != ' ' }
-        val context = firstLine.split("|-").first().split(',').map { First.parse(it) }
+        val context = firstLine.split("|-").first().split(',').map { First.parse(it, false) }
         val r = firstLine.split("|-")
-        result = First.parse(firstLine.split("|-")[1])!!
+        result = First.parse(firstLine.split("|-")[1], false)!!
 //        answer = mutableListOf(context.joinToString { it?.print() ?: "" } + " |- ${result.print()}")
 //        nextLine = getLine()
         val isAxiom : MutableMap<Int, Int> = mutableMapOf()
         val isHypothesis : MutableMap<Int, Int> = mutableMapOf()
-        val body = generateSequence { First.parse(readLine()?.filter { it != '\t' && it != '\r' && it != ' ' }) }
+        val body = generateSequence { First.parse(readLine()?.filter { it != '\t' && it != '\r' && it != ' ' }, false) }
         val l = body.toList()
         var counter = 0
         for (nextLine in l) {
@@ -123,9 +123,9 @@ class Second {
 //                nextLine = getLine()
                 continue
             }
-            if ((1 until 10).firstOrNull { nextLine!!.satisfy(it) } != null) { // check whether the statement is an axiom
+            if ((1..10).firstOrNull { nextLine!!.satisfy(it) } != null) { // check whether the statement is an axiom
 //                answer.add("[${++counter}. Ax. sch. ${(1 until 10).first { nextLine.satisfy(it) }}] ${nextLine.print()}")
-                isAxiom[++counter] = (1 until 10).first { nextLine!!.satisfy(it) }
+                isAxiom[++counter] = (1..10).first { nextLine!!.satisfy(it) }
                 lines.add(nextLine!!)
                 if (nextLine == result && resultLineNumber == 0) resultLineNumber = counter
 //                nextLine = getLine()

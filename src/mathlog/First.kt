@@ -5,32 +5,6 @@ class First(private var s: String? = null) {
     var expr : Expression? = null
 
     private val LETTERS = listOf(
-        'a',
-        'b',
-        'c',
-        'd',
-        'e',
-        'f',
-        'g',
-        'h',
-        'i',
-        'j',
-        'k',
-        'l',
-        'm',
-        'n',
-        'o',
-        'p',
-        'q',
-        'r',
-        's',
-        't',
-        'u',
-        'v',
-        'w',
-        'x',
-        'y',
-        'z',
         'A',
         'B',
         'C',
@@ -82,7 +56,7 @@ class First(private var s: String? = null) {
             buf = readChar()
         }
         returnChar()
-        return Variable(name)
+        return if (name != "") Variable(name) else null
     }
 
     fun parseExpr(): Expression? {
@@ -130,7 +104,7 @@ class First(private var s: String? = null) {
             }
         }
     }
-    fun start() : Expression? {
+    fun start(isArith : Boolean) : Expression? {
         if (s == null) s = readLine()!!.filter { it != '\t' && it != '\r' && it != ' ' }
         expr = parseExpr()
 //        println(expr)
@@ -140,12 +114,12 @@ class First(private var s: String? = null) {
     companion object {
         @JvmStatic
         fun main(args: Array<String>) {
-            First().start()
+            First().start(false)
         }
 
-        fun parse(s : String?) : Expression? {
+        fun parse(s : String?, isArith : Boolean) : Expression? {
             if (s == null) return null
-            return First(s).start()
+            return First(s).start(isArith)
         }
     }
 }
