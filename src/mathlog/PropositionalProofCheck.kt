@@ -2,16 +2,14 @@ package mathlog
 
 import kotlin.system.exitProcess
 
-class Second {
+class PropositionalProofCheck {
 
     private var lines: MutableList<Expression> = mutableListOf()
-//    var answer: MutableList<String> = mutableListOf()
-    var nextLine: Expression? = null
-    lateinit var result: Expression
-    var dependencies: MutableMap<Int, Pair<Int, Int>> = mutableMapOf()
-    var resultLineNumber = 0
-    var indicies = mutableListOf<Int>()
-    var reEnum = mutableMapOf<Int, Int>()
+    private lateinit var result: Expression
+    private var dependencies: MutableMap<Int, Pair<Int, Int>> = mutableMapOf()
+    private var resultLineNumber = 0
+    private var indicies = mutableListOf<Int>()
+    private var reEnum = mutableMapOf<Int, Int>()
 
     private fun Expression.satisfy(n: Int): Boolean {
         when (n) {
@@ -75,15 +73,15 @@ class Second {
         return false
     }
 
-    fun endWithError() {
+    private fun endWithError() {
         println("Proof is incorrect")
         exitProcess(0)
     }
 
-    fun getLine() = First.parse(readLine()?.filter { it != '\t' && it != '\r' && it != ' ' }, false)
+//    fun getLine() = PropositionalParser.parse(readLine()?.filter { it != '\t' && it != '\r' && it != ' ' })
 
 
-    fun dfs(n: Int) {
+    private fun dfs(n: Int) {
         val a = dependencies[n]
         indicies.add(n)
         if (a != null) {
@@ -92,7 +90,7 @@ class Second {
         }
     }
 
-    fun resolveDependencies() {
+    private fun resolveDependencies() {
         dfs(resultLineNumber)
         var c = 0
         for (i in indicies.sorted()) reEnum[i] = ++c
@@ -100,14 +98,13 @@ class Second {
 
     fun start() {
         val firstLine = readLine()!!.filter { it != '\t' && it != '\r' && it != ' ' }
-        val context = firstLine.split("|-").first().split(',').map { First.parse(it, false) }
-        val r = firstLine.split("|-")
-        result = First.parse(firstLine.split("|-")[1], false)!!
+        val context = firstLine.split("|-").first().split(',').map { PropositionalParser.parse(it) }
+        result = PropositionalParser.parse(firstLine.split("|-")[1])!!
 //        answer = mutableListOf(context.joinToString { it?.print() ?: "" } + " |- ${result.print()}")
 //        nextLine = getLine()
-        val isAxiom : MutableMap<Int, Int> = mutableMapOf()
-        val isHypothesis : MutableMap<Int, Int> = mutableMapOf()
-        val body = generateSequence { First.parse(readLine()?.filter { it != '\t' && it != '\r' && it != ' ' }, false) }
+        val isAxiom: MutableMap<Int, Int> = mutableMapOf()
+        val isHypothesis: MutableMap<Int, Int> = mutableMapOf()
+        val body = generateSequence { PropositionalParser.parse(readLine()?.filter { it != '\t' && it != '\r' && it != ' ' }) }
         val l = body.toList()
         var counter = 0
         for (nextLine in l) {
@@ -118,29 +115,29 @@ class Second {
             if (context.indexOfFirst { it == nextLine } != -1) { // check whether the statement is given from context
 //                answer.add("[${++counter}. Hypothesis ${context.indexOfFirst { it == nextLine } + 1}] ${nextLine.print()}")
                 isHypothesis[++counter] = context.indexOfFirst { it == nextLine } + 1
-                lines.add(nextLine!!)
+                lines.add(nextLine)
                 if (nextLine == result && resultLineNumber == 0) resultLineNumber = counter
 //                nextLine = getLine()
                 continue
             }
-            if ((1..10).firstOrNull { nextLine!!.satisfy(it) } != null) { // check whether the statement is an axiom
+            if ((1..10).firstOrNull { nextLine.satisfy(it) } != null) { // check whether the statement is an axiom
 //                answer.add("[${++counter}. Ax. sch. ${(1 until 10).first { nextLine.satisfy(it) }}] ${nextLine.print()}")
-                isAxiom[++counter] = (1..10).first { nextLine!!.satisfy(it) }
-                lines.add(nextLine!!)
+                isAxiom[++counter] = (1..10).first { nextLine.satisfy(it) }
+                lines.add(nextLine)
                 if (nextLine == result && resultLineNumber == 0) resultLineNumber = counter
 //                nextLine = getLine()
                 continue
             }
             val candidates = lines.filter { it is Implication && it.rhs == nextLine }
             val match =
-                candidates.firstOrNull { candidate -> lines.any { it == (candidate as Implication).lhs } } // check whether the statement is modus ponens
+                    candidates.firstOrNull { candidate -> lines.any { it == (candidate as Implication).lhs } } // check whether the statement is modus ponens
             if (match == null) endWithError()
             else {
                 val matchingMP = lines.indexOfFirst { it == match } + 1
                 val assumption = lines.indexOfFirst { it == (match as Implication).lhs } + 1
 //                answer.add("[${++counter}. M.P. $matchingMP, $assumption] ${nextLine.print()}")
                 dependencies[++counter] = Pair(matchingMP, assumption)
-                lines.add(nextLine!!)
+                lines.add(nextLine)
             }
             if (nextLine == result) resultLineNumber = counter
         }
@@ -149,9 +146,9 @@ class Second {
         println(context.joinToString { it?.print() ?: "" } + " |- ${result.print()}")
         for (i in indicies.sortedWith(compareBy { reEnum[it] })) {
             when {
-                dependencies[i] != null -> println("[${reEnum[i]}. M.P. ${reEnum[dependencies[i]!!.first] }, ${reEnum[dependencies[i]!!.second]}] ${lines[i-1].print()}")
-                isAxiom[i] != null -> println("[${reEnum[i]}. Ax. sch. ${isAxiom[i]}] ${lines[i-1].print()}")
-                isHypothesis[i] != null -> println("[${reEnum[i]}. Hypothesis ${isHypothesis[i]}] ${lines[i-1].print()}")
+                dependencies[i] != null -> println("[${reEnum[i]}. M.P. ${reEnum[dependencies[i]!!.first]}, ${reEnum[dependencies[i]!!.second]}] ${lines[i - 1].print()}")
+                isAxiom[i] != null -> println("[${reEnum[i]}. Ax. sch. ${isAxiom[i]}] ${lines[i - 1].print()}")
+                isHypothesis[i] != null -> println("[${reEnum[i]}. Hypothesis ${isHypothesis[i]}] ${lines[i - 1].print()}")
                 else -> println("ERROR")
             }
         }
@@ -160,7 +157,7 @@ class Second {
     companion object {
         @JvmStatic
         fun main(args: Array<String>) {
-            Second().start()
+            PropositionalProofCheck().start()
         }
     }
 }
