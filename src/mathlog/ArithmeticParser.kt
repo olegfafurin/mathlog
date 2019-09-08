@@ -11,6 +11,7 @@ class ArithmeticParser(private var s: String? = null) {
 
     private val BIG_LETTERS = ('A'..'Z')
     private val SMALL_LETTERS = ('a'..'z')
+    private val DIGITS = ('0'..'9')
 
     fun readChar(): Char? = s?.getOrNull(pos++)
 
@@ -19,7 +20,7 @@ class ArithmeticParser(private var s: String? = null) {
     fun parseString(): String {
         var s = ""
         var buf = readChar()
-        while (buf in BIG_LETTERS) {
+        while (buf in BIG_LETTERS.union(DIGITS)) {
             s += buf
             buf = readChar()
         }
@@ -30,7 +31,7 @@ class ArithmeticParser(private var s: String? = null) {
     fun parseVar(): ArithmeticVariable? {
         var name = ""
         var buf = readChar()
-        while (buf in SMALL_LETTERS) {
+        while (buf in SMALL_LETTERS.union(DIGITS)) {
             name += buf
             buf = readChar()
         }
@@ -48,7 +49,7 @@ class ArithmeticParser(private var s: String? = null) {
             }
             returnChar()
         }
-        returnChar()
+        if (next != ',') returnChar()
         return left
     }
 
@@ -70,22 +71,28 @@ class ArithmeticParser(private var s: String? = null) {
 
     fun parseNeg(): Expression? {
         return when (readChar()) {
-            '(' -> {
-                val r = parseExpr()
-                if (readChar() == ')') r else null
-            }
+//            '(' -> {
+//                val r = parseExpr()
+//                if (readChar() == ')') r else null
+//            }
             '!' -> {
                 Negation(parseNeg()!!)
             }
             '@' -> {
                 val a = parseVar()
                 if (readChar() == '.') All(a!!, parseExpr()!!)
-                else null
+                else {
+                    returnChar()
+                    All(a!!, parseNeg()!!)
+                }
             }
             '?' -> {
                 val a = parseVar()
                 if (readChar() == '.') Exist(a!!, parseExpr()!!)
-                else null
+                else {
+                    returnChar()
+                    Exist(a!!, parseNeg()!!)
+                }
             }
             else -> {
                 returnChar()
@@ -100,8 +107,11 @@ class ArithmeticParser(private var s: String? = null) {
         when (s) {
             in BIG_LETTERS -> {
                 var name = parseString()
-                if (readChar() != '(') return null
                 var terms = mutableListOf<ArithmeticExpression>()
+                if (readChar() != '(') {
+                    returnChar()
+                    return Predicate(name, terms)
+                }
                 while (readChar() != ')') {
                     returnChar()
                     while (readChar() == ',') continue
@@ -112,9 +122,30 @@ class ArithmeticParser(private var s: String? = null) {
             }
             else -> {
                 val lhs = parseTerm(null)
-                if (readChar() != '=') return null
-                val rhs = parseTerm(null)
-                return Equals(lhs!!, rhs!!)
+                if (lhs == null) {
+                    val c = readChar()
+                    if (c == '(') {
+                        val ans = parseExpr()
+                        if (readChar() == ')') return ans
+                        else {
+                            returnChar()
+                            return null
+                        }
+                    }
+                    else {
+                        returnChar()
+                        return null
+                    }
+                }
+                else {
+                    val c = readChar()
+                    if (c != '=') {
+
+                        return null
+                    }
+                    val rhs = parseTerm(null)
+                    return Equals(lhs, rhs!!)
+                }
             }
         }
     }
@@ -148,13 +179,19 @@ class ArithmeticParser(private var s: String? = null) {
         when (c) {
             '0' -> return parseMult(Zero())
             '(' -> {
+                val oldPos = pos
                 val t = parseTerm(null)
-                return if (readChar() == ')') parseMult(t) else null
+                return if (readChar() == ')') parseMult(t)
+                else {
+                    pos = oldPos
+                    returnChar()
+                    null
+                }
             }
             in SMALL_LETTERS -> {
                 var current : String = c.toString()
                 var buf = readChar()
-                while (buf in SMALL_LETTERS) {
+                while (buf in SMALL_LETTERS.union(DIGITS)) {
                     current += buf
                     buf = readChar()
                 }
@@ -163,8 +200,7 @@ class ArithmeticParser(private var s: String? = null) {
                     var terms = mutableListOf<ArithmeticExpression>()
                     while (readChar() != ')') {
                         returnChar()
-                        while (readChar() == ',') continue
-                        returnChar()
+                        if (readChar() != ',') returnChar()
                         terms.add(parseTerm(null)!!)
                     }
                     return parseMult(Function(current, terms))
@@ -175,7 +211,7 @@ class ArithmeticParser(private var s: String? = null) {
             }
         }
         returnChar()
-        return left
+        return null
     }
 
     fun start(): Expression? {

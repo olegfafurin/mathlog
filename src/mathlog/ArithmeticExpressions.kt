@@ -14,41 +14,45 @@ class Zero: ArithmeticExpression {
     }
 
     override fun hashCode(): Int {
-        return javaClass.hashCode()
+        return "0".hashCode()
     }
 }
 
-class ArithmeticVariable(val name: String) : ArithmeticExpression {
+class ArithmeticVariable(val name: String,private val instantHash: Int = name.hashCode()) : ArithmeticExpression {
     override fun print() = name
     override fun equals(other: Any?): Boolean {
         if (other == null) return false
         return (other is ArithmeticVariable && name == other.name)
     }
 
-    override fun hashCode(): Int {
-        return name.hashCode()
-    }
+    override fun hashCode() = instantHash
 }
 
-class Stroke(val expr : ArithmeticExpression) : ArithmeticExpression {
+class Stroke(val expr : ArithmeticExpression, private val instantHash: Int = "\'".hashCode() xor expr.hashCode()) : ArithmeticExpression {
     override fun print() = "${expr.print()}'"
 
     override fun equals(other: Any?): Boolean {
         return (other is Stroke && expr == other.expr)
     }
-    override fun hashCode(): Int {
-        return expr.hashCode()
+    override fun hashCode() = instantHash
+
+}
+class Function(val name : String, val terms : List<ArithmeticExpression>, private val instantHash: Int = name.hashCode() xor terms.hashCode()) : ArithmeticExpression {
+    override fun print() = "$name(${terms.joinToString(separator = ", ") { it.print() }})"
+
+    override fun equals(other: Any?): Boolean {
+        return other is Function && other.name == name && other.terms == terms
     }
 
-}
-class Function(val name : String, val terms : List<ArithmeticExpression>) : ArithmeticExpression {
-    override fun print() = "$name(${terms.map { it.print() }.joinToString(separator = ", ")})"
+    override fun hashCode() = instantHash
 }
 
-class Add(override val lhs : ArithmeticExpression, override val rhs : ArithmeticExpression): ArithmeticExpression, BinaryOperation() {
+class Add(override val lhs : ArithmeticExpression, override val rhs : ArithmeticExpression, private val instantHash: Int = "A".hashCode() xor lhs.hashCode() xor rhs.hashCode()): ArithmeticExpression, BinaryOperation() {
     override fun print() = "(${lhs.print()} + ${rhs.print()})"
+    override fun hashCode() = instantHash
 }
 
-class Mult(override val lhs : ArithmeticExpression, override val rhs : ArithmeticExpression): ArithmeticExpression, BinaryOperation() {
+class Mult(override val lhs : ArithmeticExpression, override val rhs : ArithmeticExpression, private val instantHash: Int = "M".hashCode() xor lhs.hashCode() xor rhs.hashCode()): ArithmeticExpression, BinaryOperation() {
     override fun print() = "(${lhs.print()} * ${rhs.print()})"
+    override fun hashCode() = instantHash
 }

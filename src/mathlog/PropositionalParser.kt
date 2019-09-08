@@ -2,11 +2,13 @@ package mathlog
 
 class PropositionalParser(private var s: String? = null) {
     private var pos = 0
-    var expr : Expression? = null
+    var expr: Expression? = null
 
     private val LETTERS = ('A'..'Z').plus('0'..'9').plus('\'')
 
-    fun readChar(): Char? = s?.getOrNull(pos++)
+    fun readChar(): Char? {
+        return s?.getOrNull(pos++)
+    }
 
     fun returnChar() = pos--
 
@@ -66,6 +68,7 @@ class PropositionalParser(private var s: String? = null) {
             }
         }
     }
+
     fun start(): Expression? {
         if (s == null) s = readLine()!!.filter { it != '\t' && it != '\r' && it != ' ' }
         expr = parseExpr()
@@ -73,15 +76,17 @@ class PropositionalParser(private var s: String? = null) {
         return expr
 //    parse()
     }
+
     companion object {
         @JvmStatic
         fun main(args: Array<String>) {
             println(PropositionalParser().start()!!.print())
         }
 
-        fun parse(s: String?) : Expression? {
+        fun parse(s: String?): Expression? {
             if (s == null) return null
             return PropositionalParser(s).start()
         }
     }
 }
+
