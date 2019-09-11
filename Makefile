@@ -3,7 +3,7 @@
 KOTLINC=kotlinc
 KOTLIN=kotlin
 SOURCES = src/mathlog/*
-MAINCLASS = mathlog.PropositionalProofCheck
+MAINCLASS = mathlog.ProofGeneratorKt
 JAR = out/main.jar
 all: compile
 

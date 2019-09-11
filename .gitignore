@@ -2,3 +2,8 @@ out
 *.zip
 *.iml
 .idea
+*.in
+*.txt
+*.py
+*.out
+gen

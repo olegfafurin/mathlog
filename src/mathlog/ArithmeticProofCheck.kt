@@ -1,5 +1,8 @@
 package mathlog
 
+import java.io.BufferedReader
+import java.io.FileInputStream
+import java.io.InputStreamReader
 import kotlin.system.exitProcess
 
 /**
@@ -61,100 +64,147 @@ fun Expression.getFreeVariables(): Set<String> {
     return emptySet()
 }
 
+fun Expression.satisfy(n: Int): Boolean {
+    when (n) {
+        1 -> {
+            if ((this is Implication) && (rhs is Implication) && (lhs == rhs.rhs)) return true
+            return false
+        }
+        2 -> {
+            if (this is Implication && rhs is Implication) {
+                val firstTerm = lhs
+                val midTerm = rhs.lhs
+                val lastTerm = rhs.rhs
+                if ((firstTerm is Implication) && (lastTerm is Implication) && (midTerm is Implication) && (midTerm.rhs is Implication)) {
+                    return ((firstTerm.lhs == midTerm.lhs) && (firstTerm.lhs == lastTerm.lhs) && (firstTerm.rhs == midTerm.rhs.lhs) && (midTerm.rhs.rhs == lastTerm.rhs))
+                }
+            }
+            return false
+        }
+        3 -> {
+            if (this is Implication && rhs is Implication) {
+                if (rhs.rhs is Conjunction && lhs == rhs.rhs.lhs && rhs.lhs == rhs.rhs.rhs) return true
+            }
+            return false
+        }
+        4 -> {
+            return (this is Implication && lhs is Conjunction && lhs.lhs == rhs)
+        }
+        5 -> {
+            return (this is Implication && lhs is Conjunction && lhs.rhs == rhs)
+        }
+        6 -> {
+            return (this is Implication && rhs is Disjunction && lhs == rhs.lhs)
+        }
+        7 -> {
+            return (this is Implication && rhs is Disjunction && lhs == rhs.rhs)
+        }
+        8 -> {
+            if (this is Implication && lhs is Implication && rhs is Implication && rhs.lhs is Implication && rhs.rhs is Implication && rhs.rhs.lhs is Disjunction) {
+                return ((lhs.lhs == rhs.rhs.lhs.lhs) && (rhs.lhs.lhs == rhs.rhs.lhs.rhs) && (lhs.rhs == rhs.lhs.rhs) && (lhs.rhs == rhs.rhs.rhs))
+            }
+        }
+        9 -> {
+            if (this is Implication && rhs is Implication) {
+                val firstTerm = lhs
+                val midTerm = rhs.lhs
+                val lastTerm = rhs.rhs
+                if (firstTerm is Implication && midTerm is Implication && lastTerm is Negation && midTerm.rhs is Negation) {
+                    return (firstTerm.lhs == midTerm.lhs && firstTerm.lhs == lastTerm.expression && firstTerm.rhs == midTerm.rhs.expression)
+                }
+            }
+            return false
+        }
+        10 -> {
+            if (this is Implication && lhs is Negation && lhs.expression is Negation) return (lhs.expression.expression == rhs)
+            return false
+        }
+        11 -> {
+            if (this is Implication && lhs is All) {
+                val phi = lhs.expression
+                val varName = lhs.variable.name
+                try {
+                    val candidate = discover(rhs, phi, varName)
+                    if (phi.substitute(varName, candidate?:ArithmeticVariable(varName)) == rhs) return true
+                } // 1st  axiom of predicate calculus
+                catch (e: Exception) {
+//                        println("Not 11th")
+                }
+            }
+            return false
+        }
+        12 -> {
+            if (this is Implication && rhs is Exist) {
+                val varName = rhs.variable.name
+                val phi = rhs.expression
+                try {
+                    val candidate = discover(lhs, phi, varName)
+//                        val cand = phi.substitute(varName, candidate!!)
+                    if (phi.substitute(varName, candidate?:ArithmeticVariable(varName)) == lhs) return true
+                } catch (e: Exception) {
+//                        println("Not 12th")
+                }
+            }
+            return false
+        }
+        else -> {
+            return false
+        }
+    }
+    return false
+}
+
+fun discover(expr: Expression, pattern: Expression, name: String): Expression? {
+    if (pattern is ArithmeticVariable) {
+        if (pattern.name == name) return expr
+        else if (expr !is ArithmeticVariable) throw Exception()
+        if (expr.name == pattern.name) return null // pattern?
+        else throw Exception()
+    }
+    if (pattern.javaClass.name != expr.javaClass.name) throw Exception()
+
+//    println(pattern.javaClass.name + " " + expr.javaClass.name)
+
+    if (expr is BinaryOperation && pattern is BinaryOperation) return discover(expr.lhs, pattern.lhs, name)
+            ?: discover(expr.rhs, pattern.rhs, name)
+    if (expr is Stroke && pattern is Stroke) return discover(expr.expr, pattern.expr, name)
+    if (expr is Function && pattern is Function) {
+        if (expr.name != pattern.name || expr.terms.size != pattern.terms.size) throw Exception()
+        for (i in expr.terms.indices) {
+            val candidate = discover(expr.terms[i], pattern.terms[i], name)
+            if (candidate != null) return candidate
+        }
+        return null
+    }
+    if (expr is Predicate && pattern is Predicate) {
+        if (expr.name != pattern.name || expr.terms.size != pattern.terms.size) throw Exception()
+        for (i in expr.terms.indices) {
+            val candidate = discover(expr.terms[i], pattern.terms[i], name)
+            if (candidate != null) return candidate
+        }
+        return null
+    }
+    if (expr is Zero && pattern is Zero) return null
+    if (expr is Negation && pattern is Negation) return discover(expr.expression, pattern.expression, name)
+    if (expr is All && pattern is All) {
+        if (expr.variable.name == pattern.variable.name && pattern.variable.name != name) return discover(expr.expression, pattern.expression, name)
+        if (expr == pattern) return null
+        throw Exception()
+    }
+    if (expr is Exist && pattern is Exist) {
+        if (expr.variable.name == pattern.variable.name && pattern.variable.name != name) return discover(expr.expression, pattern.expression, name)
+        if (expr == pattern) return null
+        throw Exception()
+    }
+    throw Exception()
+}
+
 class ArithmeticProofCheck {
 
     private var lines: HashSet<Expression> = HashSet()
-    private var success: Boolean = false
+    private lateinit var reader: BufferedReader
 
-    private fun Expression.satisfy(n: Int): Boolean {
-        when (n) {
-            1 -> {
-                if ((this is Implication) && (rhs is Implication) && (lhs == rhs.rhs)) return true
-                return false
-            }
-            2 -> {
-                if (this is Implication && rhs is Implication) {
-                    val firstTerm = lhs
-                    val midTerm = rhs.lhs
-                    val lastTerm = rhs.rhs
-                    if ((firstTerm is Implication) && (lastTerm is Implication) && (midTerm is Implication) && (midTerm.rhs is Implication)) {
-                        return ((firstTerm.lhs == midTerm.lhs) && (firstTerm.lhs == lastTerm.lhs) && (firstTerm.rhs == midTerm.rhs.lhs) && (midTerm.rhs.rhs == lastTerm.rhs))
-                    }
-                }
-                return false
-            }
-            3 -> {
-                if (this is Implication && rhs is Implication) {
-                    if (rhs.rhs is Conjunction && lhs == rhs.rhs.lhs && rhs.lhs == rhs.rhs.rhs) return true
-                }
-                return false
-            }
-            4 -> {
-                return (this is Implication && lhs is Conjunction && lhs.lhs == rhs)
-            }
-            5 -> {
-                return (this is Implication && lhs is Conjunction && lhs.rhs == rhs)
-            }
-            6 -> {
-                return (this is Implication && rhs is Disjunction && lhs == rhs.lhs)
-            }
-            7 -> {
-                return (this is Implication && rhs is Disjunction && lhs == rhs.rhs)
-            }
-            8 -> {
-                if (this is Implication && lhs is Implication && rhs is Implication && rhs.lhs is Implication && rhs.rhs is Implication && rhs.rhs.lhs is Disjunction) {
-                    return ((lhs.lhs == rhs.rhs.lhs.lhs) && (rhs.lhs.lhs == rhs.rhs.lhs.rhs) && (lhs.rhs == rhs.lhs.rhs) && (lhs.rhs == rhs.rhs.rhs))
-                }
-            }
-            9 -> {
-                if (this is Implication && rhs is Implication) {
-                    val firstTerm = lhs
-                    val midTerm = rhs.lhs
-                    val lastTerm = rhs.rhs
-                    if (firstTerm is Implication && midTerm is Implication && lastTerm is Negation && midTerm.rhs is Negation) {
-                        return (firstTerm.lhs == midTerm.lhs && firstTerm.lhs == lastTerm.expression && firstTerm.rhs == midTerm.rhs.expression)
-                    }
-                }
-                return false
-            }
-            10 -> {
-                if (this is Implication && lhs is Negation && lhs.expression is Negation) return (lhs.expression.expression == rhs)
-                return false
-            }
-            11 -> {
-                if (this is Implication && lhs is All) {
-                    val phi = lhs.expression
-                    val varName = lhs.variable.name
-                    try {
-                        val candidate = discover(rhs, phi, varName)
-                        if (phi.substitute(varName, candidate?:ArithmeticVariable(varName)) == rhs) return true
-                    } // 1st  axiom of predicate calculus
-                    catch (e: Exception) {
-//                        println("Not 11th")
-                    }
-                }
-                return false
-            }
-            12 -> {
-                if (this is Implication && rhs is Exist) {
-                    val varName = rhs.variable.name
-                    val phi = rhs.expression
-                    try {
-                        val candidate = discover(lhs, phi, varName)
-//                        val cand = phi.substitute(varName, candidate!!)
-                        if (phi.substitute(varName, candidate?:ArithmeticVariable(varName)) == lhs) return true
-                    } catch (e: Exception) {
-//                        println("Not 12th")
-                    }
-                }
-                return false
-            }
-            else -> {
-                return false
-            }
-        }
-        return false
-    }
+
 
     private val arithmeticAxioms = mapOf(
             1 to "a=b->a'=b'",
@@ -167,50 +217,7 @@ class ArithmeticProofCheck {
             8 to "a*b'=a*b+a"
     )
 
-    private fun discover(expr: Expression, pattern: Expression, name: String): Expression? {
-        if (pattern is ArithmeticVariable) {
-            if (pattern.name == name) return expr
-            else if (expr !is ArithmeticVariable) throw Exception()
-            if (expr.name == pattern.name) return null // pattern?
-            else throw Exception()
-        }
-        if (pattern.javaClass.name != expr.javaClass.name) throw Exception()
 
-//    println(pattern.javaClass.name + " " + expr.javaClass.name)
-
-        if (expr is BinaryOperation && pattern is BinaryOperation) return discover(expr.lhs, pattern.lhs, name)
-                ?: discover(expr.rhs, pattern.rhs, name)
-        if (expr is Stroke && pattern is Stroke) return discover(expr.expr, pattern.expr, name)
-        if (expr is Function && pattern is Function) {
-            if (expr.name != pattern.name || expr.terms.size != pattern.terms.size) throw Exception()
-            for (i in expr.terms.indices) {
-                val candidate = discover(expr.terms[i], pattern.terms[i], name)
-                if (candidate != null) return candidate
-            }
-            return null
-        }
-        if (expr is Predicate && pattern is Predicate) {
-            if (expr.name != pattern.name || expr.terms.size != pattern.terms.size) throw Exception()
-            for (i in expr.terms.indices) {
-                val candidate = discover(expr.terms[i], pattern.terms[i], name)
-                if (candidate != null) return candidate
-            }
-            return null
-        }
-        if (expr is Zero && pattern is Zero) return null
-        if (expr is Negation && pattern is Negation) return discover(expr.expression, pattern.expression, name)
-        if (expr is All && pattern is All) {
-            if (expr.variable.name == pattern.variable.name && pattern.variable.name != name) return discover(expr.expression, pattern.expression, name)
-            if (expr == pattern) return null
-            throw Exception()
-        }
-        if (expr is Exist && pattern is Exist) {
-            if (expr.variable.name == pattern.variable.name && pattern.variable.name != name) return discover(expr.expression, pattern.expression, name)
-            if (expr == pattern) return null
-            throw Exception()
-        }
-        throw Exception()
-    }
 
 
 
@@ -226,8 +233,10 @@ class ArithmeticProofCheck {
         return false
     }
 
-    fun start() {
-        val firstLine = readLine()!!.filter { it != '\t' && it != '\r' && it != ' ' }
+    fun start(filename: String = "") {
+        reader = if (filename != "") BufferedReader(InputStreamReader(FileInputStream(filename)))
+        else BufferedReader(InputStreamReader(System.`in`))
+        val firstLine = reader.readLine()!!.filter { it != '\t' && it != '\r' && it != ' ' }
 //        c.split(',').filter { it != "" }.mapNotNull { ArithmeticParser.parse(it) }.toSet()
         val contextLine = firstLine.split("|-").first()
         val contextParser = ArithmeticParser(contextLine)
@@ -237,7 +246,7 @@ class ArithmeticProofCheck {
         val restrictedVariables: MutableSet<String> = mutableSetOf()
         val body = generateSequence {
             try {
-                ArithmeticParser.parse(readLine()?.filter { it != '\t' && it != '\r' && it != ' ' })
+                ArithmeticParser.parse(reader.readLine()?.filter { it != '\t' && it != '\r' && it != ' ' })
             }
             catch (e: Exception) {
                 e.printStackTrace()
@@ -252,8 +261,8 @@ class ArithmeticProofCheck {
         for (contextExpression in context) restrictedVariables.addAll(contextExpression.getFreeVariables());
         for (expression in body) {
             n++
-            print(expression.print() + " : FREE VARS: ")
-            println(expression.getFreeVariables().joinToString(separator = ","))
+//            print(expression.print() + " : FREE VARS: ")
+//            println(expression.getFreeVariables().joinToString(separator = ","))
 
             if ((1..9).firstOrNull { expression.arithmeticAxiom(it) } != null) {
                 lines.add(expression)
@@ -312,7 +321,8 @@ class ArithmeticProofCheck {
     companion object {
         @JvmStatic
         fun main(args: Array<String>) {
-            ArithmeticProofCheck().start()
+            if (args.isNotEmpty()) ArithmeticProofCheck().start(args[0])
+            else ArithmeticProofCheck().start()
         }
     }
 }

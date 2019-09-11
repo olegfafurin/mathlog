@@ -11,7 +11,7 @@ import java.security.AccessControlContext
  * Created by imd on 01/09/2019
  */
 
-private val ATOA = listOf(
+val ATOA = listOf(
         "(A->(A->A->A))->(A->(A->A->A)->A)->(A->A)",
         "A->A->A",
         "(A->A->A)->A->(A->A->A)",
@@ -23,7 +23,6 @@ private val ATOA = listOf(
 
 //private val ATONOTNOTA = fromFile("AtoNotNotA.in")
 private val NOTNOTA = fromFile("notnotA.in")
-private val CONTR = fromFile("contrap_full.in")
 private val IMPL = fromFile("int_impl.in")
 private val TENTH = fromFile("tenth2.in")
 
@@ -38,19 +37,41 @@ fun Expression.subst(corr: Map<Variable, Expression>): Expression? {
     return null
 }
 
-fun fromFile(fileName: String): List<Expression> {
-    return BufferedReader(InputStreamReader(FileInputStream(fileName))).readLines().drop(1).map { ArithmeticParser.parse(it.filter { char -> char != ' ' }) }.filterNotNull()
+fun fromFile(fileName: String, propos: Boolean = false): List<Expression> {
+    if (propos) return BufferedReader(InputStreamReader(FileInputStream(fileName))).readLines().drop(1).map { PropositionalParser.parse(it.filter { char -> char != ' ' }) }.filterNotNull()
+    else return BufferedReader(InputStreamReader(FileInputStream(fileName))).readLines().drop(1).map { ArithmeticParser.parse(it.filter { char -> char != ' ' }) }.filterNotNull()
 }
 
 fun deduct(proof: List<Expression>, context: List<Expression>, assumption: Expression) {
-    var proved = mutableSetOf<Expression>()
+    var skipped = mutableSetOf<Expression>()
+    var proved = mutableSetOf(
+            "@a.@b.a=b->a'=b'",
+            "@a.@b.@c.a=b->a=c->b=c",
+            "@a.@b.a'=b'->a=b",
+            "@a.!a'=0",
+            "@a.@b.a+b'=(a+b)'",
+            "@a.a+0=a",
+            "@a.a*0=0",
+            "@a.@b.a*b'=a*b+a"
+    ).map { ArithmeticParser.parse(it)!! }.toMutableSet()
+    proved.addAll(AX.mapValues { ArithmeticParser.parse(it.value)!! }.values)
+    proved.add(TRUTH)
+    for (line in proved) {
+        println(line.print())
+        println(Implication(line, Implication(assumption, line)).print())
+        println(Implication(assumption, line).print())
+    }
     for (line in proof) {
-        var n = (1..10).firstOrNull { line.propositionalAxiom(it) }
-        if (n != null || line in context) {
+        var n = (1..12).firstOrNull { line.satisfy(it) }
+        var m = (1..8).firstOrNull { line == ArithmeticParser.parse(AX[it])!! }
+        if (n != null || m != null || line in context || line in skipped) {
             println(line.print())
             println(Implication(line, Implication(assumption, line)).print())
             println(Implication(assumption, line).print())
             proved.add(line)
+        } else if (line is Implication && line.rhs is All && line.lhs == TRUTH) {
+//            println("### " + line.print())
+            skipped.add(line.rhs)
         } else if (line != assumption) {
             val candidates = proved.filter { it is Implication && it.rhs == line }
             val match =
@@ -69,9 +90,6 @@ fun deduct(proof: List<Expression>, context: List<Expression>, assumption: Expre
     }
 }
 
-fun process(line: String) {
-
-}
 
 class Output {
     val outputSb = StringBuilder()
