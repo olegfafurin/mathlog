@@ -20,6 +20,7 @@ class Zero: ArithmeticExpression {
 
 class ArithmeticVariable(val name: String,private val instantHash: Int = name.hashCode()) : ArithmeticExpression {
     override fun print() = name
+
     override fun equals(other: Any?): Boolean {
         if (other == null) return false
         return (other is ArithmeticVariable && name == other.name)
@@ -49,10 +50,20 @@ class Function(val name : String, val terms : List<ArithmeticExpression>, privat
 
 class Add(override val lhs : ArithmeticExpression, override val rhs : ArithmeticExpression, private val instantHash: Int = "A".hashCode() xor lhs.hashCode() xor rhs.hashCode()): ArithmeticExpression, BinaryOperation() {
     override fun print() = "(${lhs.print()} + ${rhs.print()})"
+
     override fun hashCode() = instantHash
+
+    override fun equals(other: Any?): Boolean {
+        return other is Add && other.lhs == lhs && other.rhs == rhs
+    }
 }
 
 class Mult(override val lhs : ArithmeticExpression, override val rhs : ArithmeticExpression, private val instantHash: Int = "M".hashCode() xor lhs.hashCode() xor rhs.hashCode()): ArithmeticExpression, BinaryOperation() {
     override fun print() = "(${lhs.print()} * ${rhs.print()})"
+
     override fun hashCode() = instantHash
+
+    override fun equals(other: Any?): Boolean {
+        return other is Mult && other.lhs == lhs && other.rhs == rhs
+    }
 }

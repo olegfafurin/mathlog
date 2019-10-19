@@ -71,10 +71,7 @@ class PropositionalParser(private var s: String? = null) {
 
     fun start(): Expression? {
         if (s == null) s = readLine()!!.filter { it != '\t' && it != '\r' && it != ' ' }
-        expr = parseExpr()
-//        println(expr)
-        return expr
-//    parse()
+        return parseExpr()
     }
 
     companion object {

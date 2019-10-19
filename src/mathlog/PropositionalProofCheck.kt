@@ -114,17 +114,13 @@ class PropositionalProofCheck {
         var isHypothesis: MutableMap<Int, Int> = mutableMapOf()
         var body: List<Expression>
         var l: Sequence<String>
-//        var startTime: Long
         if (fileName == "") {
             reader = BufferedReader(InputStreamReader(System.`in`))
-//            startTime = System.currentTimeMillis()
             firstLine = reader.readLine()!!.filter { it != '\t' && it != '\r' && it != ' ' }
             l = generateSequence { reader.readLine().filter { it != ' ' && it != '\t' && it !='\r' } }
         } else {
             reader = BufferedReader(InputStreamReader(FileInputStream(fileName)))
-//            startTime = System.currentTimeMillis()
             firstLine = reader.readLine().filter { it != '\t' && it != '\r' && it != ' ' }
-//            l = fromFile(fileName)
             l = generateSequence { readLine() }
             reader.close()
         }
@@ -142,7 +138,6 @@ class PropositionalProofCheck {
                 continue
             }
             if (contextHs.contains(nextLine)) { // check whether the statement is given from context
-//                answer.add("[${++counter}. Hypothesis ${context.indexOfFirst { it == nextLine } + 1}] ${nextLine.print()}")
                 isHypothesis[++counter] = context.indexOfFirst { it == nextLine } + 1
                 lines.add(nextLine)
                 proved[nextLine] = counter
@@ -151,7 +146,6 @@ class PropositionalProofCheck {
                     else rightParts[nextLine.rhs] = mutableSetOf(counter)
                 }
                 if (nextLine == result && resultLineNumber == 0) resultLineNumber = counter
-//                nextLine = getLine()
                 continue
             }
             val testAxiom = (1..10).firstOrNull { nextLine.propositionalAxiom(it) }
@@ -185,7 +179,6 @@ class PropositionalProofCheck {
         if (lines[counter - 1] != result) endWithError()
         resolveDependencies()
         output { println(context.joinToString { it.print() } + " |- ${result.print()}") }
-//        for (i in indices) println("$i ${reEnum[i]}")
         var finalLines = mutableListOf<Expression>()
         output {
             for (i in indices.sortedWith(compareBy { reEnum[it] })) {
@@ -198,7 +191,6 @@ class PropositionalProofCheck {
                 }
 
             }
-//            println("${System.currentTimeMillis() - startTime}ms elapsed")
         }
     }
 

@@ -70,7 +70,7 @@ fun deduct(proof: List<Expression>, context: List<Expression>, assumption: Expre
             println(Implication(assumption, line).print())
             proved.add(line)
         } else if (line is Implication && line.rhs is All && line.lhs == TRUTH) {
-//            println("### " + line.print())
+//            println(line.print())
             skipped.add(line.rhs)
         } else if (line != assumption) {
             val candidates = proved.filter { it is Implication && it.rhs == line }

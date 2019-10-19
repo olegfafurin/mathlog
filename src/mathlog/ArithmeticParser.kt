@@ -71,10 +71,6 @@ class ArithmeticParser(private var s: String? = null) {
 
     fun parseNeg(): Expression? {
         return when (readChar()) {
-//            '(' -> {
-//                val r = parseExpr()
-//                if (readChar() == ')') r else null
-//            }
             '!' -> {
                 Negation(parseNeg()!!)
             }
@@ -168,7 +164,6 @@ class ArithmeticParser(private var s: String? = null) {
 
     private fun parseMult(left: ArithmeticExpression?): ArithmeticExpression? {
         val c = readChar()
-//        returnChar()
         if (left != null) {
             if (c == '\'') return parseMult(Stroke(left))
             else {
@@ -216,10 +211,7 @@ class ArithmeticParser(private var s: String? = null) {
 
     fun start(): Expression? {
         if (s == null) s = readLine()!!.filter { it != '\t' && it != '\r' && it != ' ' }
-        expr = parseExpr()
-//        println(expr)
-        return expr
-//    parse()
+        return parseExpr()
     }
 
     companion object {

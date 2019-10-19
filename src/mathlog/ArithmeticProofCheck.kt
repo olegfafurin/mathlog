@@ -128,7 +128,7 @@ fun Expression.satisfy(n: Int): Boolean {
                     if (phi.substitute(varName, candidate?:ArithmeticVariable(varName)) == rhs) return true
                 } // 1st  axiom of predicate calculus
                 catch (e: Exception) {
-//                        println("Not 11th")
+		// Not 11th
                 }
             }
             return false
@@ -139,10 +139,9 @@ fun Expression.satisfy(n: Int): Boolean {
                 val phi = rhs.expression
                 try {
                     val candidate = discover(lhs, phi, varName)
-//                        val cand = phi.substitute(varName, candidate!!)
                     if (phi.substitute(varName, candidate?:ArithmeticVariable(varName)) == lhs) return true
                 } catch (e: Exception) {
-//                        println("Not 12th")
+		// Not 12th
                 }
             }
             return false
@@ -162,9 +161,6 @@ fun discover(expr: Expression, pattern: Expression, name: String): Expression? {
         else throw Exception()
     }
     if (pattern.javaClass.name != expr.javaClass.name) throw Exception()
-
-//    println(pattern.javaClass.name + " " + expr.javaClass.name)
-
     if (expr is BinaryOperation && pattern is BinaryOperation) return discover(expr.lhs, pattern.lhs, name)
             ?: discover(expr.rhs, pattern.rhs, name)
     if (expr is Stroke && pattern is Stroke) return discover(expr.expr, pattern.expr, name)
@@ -217,10 +213,6 @@ class ArithmeticProofCheck {
             8 to "a*b'=a*b+a"
     )
 
-
-
-
-
     private fun Expression.arithmeticAxiom(n: Int): Boolean {
         if (n in 1..8) {
             return ArithmeticParser.parse(arithmeticAxioms[n]) == this
@@ -237,7 +229,6 @@ class ArithmeticProofCheck {
         reader = if (filename != "") BufferedReader(InputStreamReader(FileInputStream(filename)))
         else BufferedReader(InputStreamReader(System.`in`))
         val firstLine = reader.readLine()!!.filter { it != '\t' && it != '\r' && it != ' ' }
-//        c.split(',').filter { it != "" }.mapNotNull { ArithmeticParser.parse(it) }.toSet()
         val contextLine = firstLine.split("|-").first()
         val contextParser = ArithmeticParser(contextLine)
         val context = generateSequence { contextParser.start() }.toSet()
@@ -261,9 +252,6 @@ class ArithmeticProofCheck {
         for (contextExpression in context) restrictedVariables.addAll(contextExpression.getFreeVariables());
         for (expression in body) {
             n++
-//            print(expression.print() + " : FREE VARS: ")
-//            println(expression.getFreeVariables().joinToString(separator = ","))
-
             if ((1..9).firstOrNull { expression.arithmeticAxiom(it) } != null) {
                 lines.add(expression)
                 continue
